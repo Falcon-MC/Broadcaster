@@ -9,6 +9,8 @@
 #include <chrono>
 #include <csignal>
 #include <filesystem>
+#include <functional>
+#include <iostream>
 #include <memory>
 #include <string>
 #include <thread>
@@ -34,6 +36,62 @@ namespace {
         std::shared_ptr<FileLogEndPoint> file = std::make_shared<FileLogEndPoint>(LOG_FILE);
         if (file->isOpen())
             BedrockLog::addEndPoint(file);
+    }
+
+    void printStatus(const Broadcaster &broadcaster) {
+        for (const AccountStatus &status: broadcaster.getStatus()) {
+            if (status.mOnline) {
+                LOG_INFO(LogAreaID::Network, "[%s] %s: online, %lld player(s) sent", status.mName.c_str(),
+                         status.mGamertag.c_str(), status.mTransferred);
+            } else {
+                LOG_INFO(LogAreaID::Network, "[%s] %s: offline (%s), %lld player(s) sent", status.mName.c_str(),
+                         status.mGamertag.c_str(), status.mReason.c_str(), status.mTransferred);
+            }
+        }
+    }
+
+    void printFriends(const Broadcaster &broadcaster, int maxFriends) {
+        int total = 0;
+        for (const AccountStatus &status: broadcaster.getStatus()) {
+            if (status.mFriendCount < 0) {
+                LOG_INFO(LogAreaID::Network, "[%s] friends not read yet", status.mName.c_str());
+                continue;
+            }
+            total += status.mFriendCount;
+            LOG_INFO(LogAreaID::Network, "[%s] %d / %d friends", status.mName.c_str(), status.mFriendCount,
+                     maxFriends);
+        }
+        LOG_INFO(LogAreaID::Network, "%d friends in total", total);
+    }
+
+    void runConsole(Broadcaster &broadcaster) {
+        std::string line;
+        while (!interrupted.load() && std::getline(std::cin, line)) {
+            const size_t start = line.find_first_not_of(" \t\r");
+            const size_t end = line.find_last_not_of(" \t\r");
+            const std::string command = start == std::string::npos ? "" : line.substr(start, end - start + 1);
+
+            if (command.empty())
+                continue;
+            if (command == "help") {
+                LOG_INFO(LogAreaID::Network, "Commands: status, friends, reload, stop");
+            } else if (command == "status") {
+                printStatus(broadcaster);
+            } else if (command == "friends") {
+                printFriends(broadcaster, broadcaster.getMaxFriends());
+            } else if (command == "reload") {
+                std::string error;
+                if (broadcaster.reload(error))
+                    LOG_INFO(LogAreaID::Network, "Reloaded the settings");
+                else
+                    LOG_ERROR(LogAreaID::Network, "Could not reload the settings: %s", error.c_str());
+            } else if (command == "stop") {
+                interrupted.store(true);
+                return;
+            } else {
+                LOG_INFO(LogAreaID::Network, "Unknown command %s, type help", command.c_str());
+            }
+        }
     }
 
     std::string configPath(int argc, char **argv) {
@@ -74,7 +132,8 @@ int main(int argc, char **argv) {
     std::signal(SIGINT, onSignal);
     std::signal(SIGTERM, onSignal);
 
-    Broadcaster broadcaster(config);
+    Broadcaster broadcaster(path, config);
+    std::thread(runConsole, std::ref(broadcaster)).detach();
     std::atomic<bool> finished{false};
     std::thread watcher([&broadcaster, &finished] {
         while (!finished.load()) {

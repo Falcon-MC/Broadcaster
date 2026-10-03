@@ -1,0 +1,142 @@
+name: Release
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.v.outputs.version }}
+      release: ${{ steps.v.outputs.release }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: v
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VER=$(sed -n 's/^project(Falcon\.Broadcaster VERSION \([0-9.]*\).*/\1/p' CMakeLists.txt)
+          echo "version=$VER" >> "$GITHUB_OUTPUT"
+          if [ -z "$VER" ]; then
+            echo "release=false" >> "$GITHUB_OUTPUT"
+          elif gh release view "v$VER" -R "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "release=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "release=true" >> "$GITHUB_OUTPUT"
+          fi
+
+  linux:
+    needs: check
+    if: needs.check.outputs.release == 'true'
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: dependencies
+        run: sudo apt-get update && sudo apt-get install -y ninja-build libssl-dev zlib1g-dev
+      - uses: actions/cache@v4
+        with:
+          path: build/_deps
+          key: linux-deps-${{ hashFiles('CMakeLists.txt') }}
+      - name: build
+        run: |
+          cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DOPENSSL_USE_STATIC_LIBS=ON
+          cmake --build build --parallel
+      - name: package
+        run: |
+          mkdir -p dist
+          cp build/FalconBroadcaster dist/FalconBroadcaster-linux-x64
+          strip dist/FalconBroadcaster-linux-x64
+          (cd dist && sha256sum FalconBroadcaster-linux-x64 > FalconBroadcaster-linux-x64.sha256)
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux
+          path: dist/*
+
+  windows:
+    needs: check
+    if: needs.check.outputs.release == 'true'
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: UCRT64
+          update: true
+          install: >-
+            mingw-w64-ucrt-x86_64-gcc
+            mingw-w64-ucrt-x86_64-cmake
+            mingw-w64-ucrt-x86_64-ninja
+            mingw-w64-ucrt-x86_64-lld
+            mingw-w64-ucrt-x86_64-zlib
+            mingw-w64-ucrt-x86_64-openssl
+            git
+      - uses: actions/cache@v4
+        with:
+          path: build/_deps
+          key: windows-deps-${{ hashFiles('CMakeLists.txt') }}
+      - name: build
+        shell: msys2 {0}
+        run: |
+          cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+          cmake --build build --parallel 4
+      - name: package
+        shell: msys2 {0}
+        run: |
+          mkdir -p dist
+          cp build/FalconBroadcaster.exe dist/FalconBroadcaster-windows-x64.exe
+          strip dist/FalconBroadcaster-windows-x64.exe
+          (cd dist && sha256sum FalconBroadcaster-windows-x64.exe > FalconBroadcaster-windows-x64.exe.sha256)
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows
+          path: dist/*
+
+  docker:
+    needs: check
+    if: needs.check.outputs.release == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ghcr.io/falcon-mc/broadcaster:${{ needs.check.outputs.version }}
+            ghcr.io/falcon-mc/broadcaster:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  publish:
+    needs: [check, linux, windows, docker]
+    runs-on: ubuntu-latest
+    env:
+      VER: ${{ needs.check.outputs.version }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - name: publish release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "v${VER}" -R "$GITHUB_REPOSITORY" \
+            -t "Falcon Broadcaster v${VER}" --generate-notes \
+            dist/*

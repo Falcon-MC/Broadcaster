@@ -4,26 +4,34 @@
 #include "Broadcaster/PlayerHistory.h"
 
 #include <atomic>
+#include <string>
 
 class MinecraftAuthentication;
 
 /**
- * Keeps the broadcasting account's friends list usable: accepts the requests players send it, and removes friends
- * who have not joined for a while, since Xbox Live caps the size of the list.
+ * Keeps a broadcasting account's friends list usable: removes friends who have not joined for a while, then accepts
+ * the requests players send it while the list has room, since Xbox Live caps its size.
  */
 class FriendSync {
 public:
-    FriendSync(const BroadcasterConfig &config, MinecraftAuthentication &authentication, PlayerHistory &history,
-               const std::atomic<bool> &stopping);
+    FriendSync(std::string accountName, const BroadcasterConfigStore &configs, MinecraftAuthentication &authentication,
+               PlayerHistory &history, std::atomic<int> &friendCount, const std::atomic<bool> &stopping);
 
     void run();
 
 private:
-    void _acceptRequests();
-    void _removeInactiveFriends();
+    /**
+     * Returns how many friends the account has after the removals, or -1 when the list could not be read.
+     */
+    int _removeInactiveFriends(const BroadcasterConfig &config);
 
-    const BroadcasterConfig &mConfig;
+    void _acceptRequests(const BroadcasterConfig &config, int friendCount);
+
+    std::string mAccountName;
+    const BroadcasterConfigStore &mConfigs;
     MinecraftAuthentication &mAuthentication;
     PlayerHistory &mHistory;
+    std::atomic<int> &mFriendCount;
     const std::atomic<bool> &mStopping;
+    bool mFull = false;
 };

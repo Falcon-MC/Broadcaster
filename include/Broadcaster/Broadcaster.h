@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Broadcaster/BroadcastAccount.h"
 #include "Broadcaster/BroadcasterConfig.h"
 #include "Broadcaster/PlayerHistory.h"
 
@@ -7,49 +8,48 @@
 #include <memory>
 #include <mutex>
 #include <string>
-#include <thread>
 #include <vector>
 
-class BedrockListener;
-class MinecraftAuthentication;
-struct IncomingConnection;
-
 /**
- * Publishes the configured server as a world in the Xbox Live friends list of the signed in account, and sends
+ * Publishes the configured server as a world in the Xbox Live friends list of every configured account, and sends
  * every player who joins it on to the server.
  */
 class Broadcaster {
 public:
-    explicit Broadcaster(BroadcasterConfig config);
+    Broadcaster(std::string configPath, BroadcasterConfig config);
     ~Broadcaster();
 
     Broadcaster(const Broadcaster &) = delete;
     Broadcaster &operator=(const Broadcaster &) = delete;
 
     /**
-     * Signs in, publishes the session and serves players until stop() is called. Returns false when the account
-     * cannot sign in.
+     * Signs in every account, then broadcasts until stop() is called. Returns false when no account can sign in.
      */
     bool run(std::string &outError);
 
     void stop();
 
-private:
-    bool _signIn(std::string &outError);
-    bool _listen(std::string &outError);
-    void _acceptPlayers();
-    void _transfer(IncomingConnection incoming);
-    void _advertise();
-    void _keepPresence();
-    void _wait(int seconds);
-    std::string _worldName() const;
+    /**
+     * Reads the settings file again and applies it without restarting. Accounts are only read at startup.
+     */
+    bool reload(std::string &outError);
 
-    BroadcasterConfig mConfig;
+    std::vector<AccountStatus> getStatus() const;
+
+    int getMaxFriends() const {
+        return mConfigs.get()->mMaxFriends;
+    }
+
+private:
+    void _advertise();
+    Advertisement _queryAdvertisement(const BroadcasterConfig &config) const;
+    void _wait(int seconds);
+
+    std::string mConfigPath;
+    BroadcasterConfigStore mConfigs;
     PlayerHistory mHistory;
-    std::unique_ptr<MinecraftAuthentication> mAuthentication;
-    std::unique_ptr<BedrockListener> mListener;
-    std::mutex mListenerMutex;
     std::atomic<bool> mStopping{false};
-    std::atomic<int> mActiveTransfers{0};
-    std::vector<std::thread> mWorkers;
+    std::atomic<bool> mAdvertiseNow{false};
+    mutable std::mutex mAccountsMutex;
+    std::vector<std::unique_ptr<BroadcastAccount>> mAccounts;
 };
