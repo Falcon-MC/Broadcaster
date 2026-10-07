@@ -11,6 +11,7 @@
 
 <p align="center">
 	<a href="https://github.com/Falcon-MC/Broadcaster/actions/workflows/ci.yml"><img src="https://github.com/Falcon-MC/Broadcaster/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+	<a href="https://github.com/Falcon-MC/Broadcaster/actions/workflows/release.yml"><img src="https://github.com/Falcon-MC/Broadcaster/actions/workflows/release.yml/badge.svg" alt="Release"></a>
 	<img src="https://img.shields.io/badge/minecraft-v1.26.52%20(Bedrock)-56383E" alt="Minecraft">
 	<img src="https://img.shields.io/badge/language-C%2B%2B17-00599C" alt="C++17">
 	<img src="https://img.shields.io/badge/platform-Windows%20%7C%20Linux-lightgrey" alt="Platform">
