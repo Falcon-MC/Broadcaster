@@ -61,7 +61,7 @@ jobs:
           cp build/FalconBroadcaster dist/FalconBroadcaster-linux-x64
           strip dist/FalconBroadcaster-linux-x64
           (cd dist && sha256sum FalconBroadcaster-linux-x64 > FalconBroadcaster-linux-x64.sha256)
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: linux
           path: dist/*
@@ -100,7 +100,7 @@ jobs:
           cp build/FalconBroadcaster.exe dist/FalconBroadcaster-windows-x64.exe
           strip dist/FalconBroadcaster-windows-x64.exe
           (cd dist && sha256sum FalconBroadcaster-windows-x64.exe > FalconBroadcaster-windows-x64.exe.sha256)
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: windows
           path: dist/*
