@@ -145,3 +145,12 @@ jobs:
           gh release create "v${VER}" -R "$GITHUB_REPOSITORY" \
             -t "Falcon Broadcaster v${VER}" --generate-notes \
             dist/*
+
+  verify-eggs:
+    needs: [check, publish]
+    uses: Falcon-MC/Pterodactyl/.github/workflows/notify-release.yml@main
+    with:
+      tag: v${{ needs.check.outputs.version }}
+    secrets:
+      AUTOMATION_APP_ID: ${{ secrets.AUTOMATION_APP_ID }}
+      AUTOMATION_APP_PRIVATE_KEY: ${{ secrets.AUTOMATION_APP_PRIVATE_KEY }}
