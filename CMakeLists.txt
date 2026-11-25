@@ -6,14 +6,16 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 include(FetchContent)
 
+# the network library lives in the Falcon repository and builds Falcon.Protocol next to it
 FetchContent_Declare(
-    falcon_network
-    GIT_REPOSITORY https://github.com/Falcon-MC/Network.git
-    GIT_TAG main
+    falcon
+    GIT_REPOSITORY https://github.com/Falcon-MC/Falcon.git
+    GIT_TAG dev
     GIT_SHALLOW TRUE
     GIT_PROGRESS TRUE
+    SOURCE_SUBDIR Falcon.Network
 )
-FetchContent_MakeAvailable(falcon_network)
+FetchContent_MakeAvailable(falcon)
 
 file(GLOB_RECURSE FALCON_BROADCASTER_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp")
 
