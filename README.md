@@ -112,7 +112,7 @@ cmake --build build
 - [Falcon](https://github.com/Falcon-MC/Falcon) - the server
 - [Falcon.Network](https://github.com/Falcon-MC/Falcon/tree/dev/Falcon.Network) - RakNet and NetherNet transport, Xbox Live services
 - [Falcon.Protocol](https://github.com/Falcon-MC/Falcon/tree/dev/Falcon.Protocol) - packets and network types
-- [NBT](https://github.com/Falcon-MC/NBT) - NBT tags and binary streams
+- [Falcon.Shared](https://github.com/Falcon-MC/Falcon/tree/dev/Falcon.Shared) - NBT tags and binary streams
 
 ## Licensing information
 
