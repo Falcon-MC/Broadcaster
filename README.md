@@ -36,7 +36,7 @@ cannot be added. Every player who joins is sent straight on to the server.
 - **Reconnection** - a lost session or signaling connection is restored on its own, waiting longer after each
   failure
 
-It is built on [Network](https://github.com/Falcon-MC/Network), which provides the Xbox Live services, the
+It is built on [Falcon.Network](https://github.com/Falcon-MC/Falcon/tree/dev/Falcon.Network), which provides the Xbox Live services, the
 multiplayer session and the NetherNet transport.
 
 ## Getting started
@@ -110,8 +110,8 @@ cmake --build build
 ## Related repositories
 
 - [Falcon](https://github.com/Falcon-MC/Falcon) - the server
-- [Network](https://github.com/Falcon-MC/Network) - RakNet and NetherNet transport, Xbox Live services
-- [Protocol](https://github.com/Falcon-MC/Protocol) - packets and network types
+- [Falcon.Network](https://github.com/Falcon-MC/Falcon/tree/dev/Falcon.Network) - RakNet and NetherNet transport, Xbox Live services
+- [Falcon.Protocol](https://github.com/Falcon-MC/Falcon/tree/dev/Falcon.Protocol) - packets and network types
 - [NBT](https://github.com/Falcon-MC/NBT) - NBT tags and binary streams
 
 ## Licensing information
